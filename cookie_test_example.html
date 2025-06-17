@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cookie Access Test</title>
+</head>
+<body>
+    <h1>การทดสอบการเข้าถึง Cookies</h1>
+    
+    <script>
+        console.log("=== การทดสอบการเข้าถึง Cookies ===");
+        
+        // ดู Cookies ทั้งหมดที่ JavaScript เข้าถึงได้
+        console.log("All readable cookies:", document.cookie);
+        
+        // ลองหา csrfToken (ควรเจอ เพราะ httpOnly: false)
+        const csrfToken = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrfToken='))
+            ?.split('=')[1];
+        
+        console.log("csrfToken found:", csrfToken);
+        
+        // ลองหา _csrf (ไม่ควรเจอ เพราะ httpOnly: true)
+        const csrfSecret = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('_csrf='))
+            ?.split('=')[1];
+        
+        console.log("_csrf found:", csrfSecret || "❌ ไม่สามารถเข้าถึงได้ (httpOnly: true)");
+        
+        // ลองแก้ไข csrfToken (ทำได้ แต่จะทำให้ระบบเสีย)
+        if (csrfToken) {
+            console.log("Original csrfToken:", csrfToken);
+            
+            // แก้ไข csrfToken
+            document.cookie = "csrfToken=fake-token-12345; path=/";
+            
+            // ตรวจสอบหลังแก้ไข
+            const modifiedToken = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrfToken='))
+                ?.split('=')[1];
+            
+            console.log("Modified csrfToken:", modifiedToken);
+            console.log("⚠️ การแก้ไขนี้จะทำให้ CSRF protection ไม่ทำงาน!");
+        }
+        
+        // ลองแก้ไข _csrf (ทำไม่ได้)
+        console.log("ลองแก้ไข _csrf cookie...");
+        document.cookie = "_csrf=fake-secret-12345; path=/";
+        
+        // ตรวจสอบว่าแก้ไขได้หรือไม่
+        const checkCsrfSecret = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('_csrf='))
+            ?.split('=')[1];
+        
+        console.log("_csrf after modification attempt:", checkCsrfSecret || "❌ ยังคงเข้าถึงไม่ได้");
+        
+        // สรุป
+        console.log("\n=== สรุปผลการทดสอบ ===");
+        console.log("✅ csrfToken: อ่านและแก้ไขได้ (httpOnly: false)");
+        console.log("❌ _csrf: อ่านและแก้ไขไม่ได้ (httpOnly: true)");
+        console.log("🛡️ ความปลอดภัย: _csrf ปลอดภัยจาก XSS attacks");
+        
+    </script>
+    
+    <div style="margin-top: 20px; padding: 20px; background: #f0f0f0;">
+        <h2>วิธีการตรวจสอบใน Browser DevTools:</h2>
+        <ol>
+            <li>เปิด DevTools (F12)</li>
+            <li>ไปที่ Application/Storage tab</li>
+            <li>ดูใน Cookies section</li>
+            <li>จะเห็น:
+                <ul>
+                    <li><strong>csrfToken</strong> - HttpOnly: ❌ (แก้ไขได้)</li>
+                    <li><strong>_csrf</strong> - HttpOnly: ✅ (แก้ไขไม่ได้)</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+    
+    <div style="margin-top: 20px; padding: 20px; background: #ffe6e6;">
+        <h2>⚠️ คำเตือนด้านความปลอดภัย:</h2>
+        <ul>
+            <li>แม้ว่า <code>csrfToken</code> จะแก้ไขได้ แต่การแก้ไขจะทำให้ระบบไม่ทำงาน</li>
+            <li><code>_csrf</code> ปลอดภัยจาก XSS เพราะ JavaScript เข้าถึงไม่ได้</li>
+            <li>นี่คือเหตุผลที่ Double Submit Cookie Pattern ปลอดภัย</li>
+        </ul>
+    </div>
+</body>
+</html>
